@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.1</TargetFrameworks>
+
+    <Description>User-defined types change notifications support for Entity Framework Core</Description>
+    <PackageTags>Entity Framework Core;entity-framework-core;ef;efcore;change tracking;ChangeTrackingStrategy;UDT;User-defined types;INotifyPropertyChanged,INotifyCollectionChanged</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE" Visible="false" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.0.1" />
+  </ItemGroup>
+
+</Project>

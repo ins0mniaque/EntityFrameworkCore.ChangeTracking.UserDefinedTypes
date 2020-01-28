@@ -1,0 +1,19 @@
+<Project>
+
+  <PropertyGroup>
+    <Authors>Jean-Philippe Leconte</Authors>
+    <Copyright>Copyright © Jean-Philippe Leconte 2020</Copyright>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/ins0mniaque/EntityFrameworkCore.ChangeTracking.UserDefinedTypes</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/ins0mniaque/EntityFrameworkCore.ChangeTracking.UserDefinedTypes</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>
