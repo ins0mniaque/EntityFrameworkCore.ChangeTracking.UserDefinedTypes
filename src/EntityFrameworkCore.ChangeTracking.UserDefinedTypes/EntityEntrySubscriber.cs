@@ -46,23 +46,25 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
             {
                 listener.PropertyChanging += (o, e) =>
                 {
-                    if ( ! IsSubProperty ( e.PropertyName ) )
+                    var rootProperty = GetRootProperty ( e.PropertyName );
+                    if ( ! properties.Contains ( rootProperty ) )
                         return;
 
-                    var rootProperty = GetRootProperty ( e.PropertyName );
-                    if ( properties.Contains ( rootProperty ) )
+                    if ( IsSubProperty ( e.PropertyName ) )
                         entry.HandleINotifyPropertyChanging ( notify, new PropertyChangingEventArgs ( rootProperty ) );
                 };
             }
 
             listener.PropertyChanged += (o, e) =>
             {
-                if ( ! IsSubProperty ( e.PropertyName ) )
+                var rootProperty = GetRootProperty ( e.PropertyName );
+                if ( ! properties.Contains ( rootProperty ) )
                     return;
 
-                var rootProperty = GetRootProperty ( e.PropertyName );
-                if ( properties.Contains ( rootProperty ) )
+                if ( IsSubProperty ( e.PropertyName ) )
                     entry.HandleINotifyPropertyChanged ( notify, new PropertyChangedEventArgs ( rootProperty ) );
+
+                entry.ToEntityEntry ( ).Property ( rootProperty ).UpdateModificationState ( );
             };
 
             listeners.Add ( notify, listener );
@@ -75,6 +77,7 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
         public override void Unsubscribe ( InternalEntityEntry entry )
         {
             var strategy = entry.EntityType.GetChangeTrackingStrategy ( );
+
             if ( strategy != ChangeTrackingStrategy.Snapshot && listeners.TryGetValue ( entry.Entity, out var listener ) )
             {
                 listeners.Remove ( listener );
