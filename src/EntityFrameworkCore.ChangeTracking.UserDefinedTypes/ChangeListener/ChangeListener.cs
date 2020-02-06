@@ -8,21 +8,14 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
 {
     public abstract class ChangeListener : INotifyPropertyChanging, INotifyPropertyChanged, IDisposable
     {
-        public static ChangeListener? Create ( object value ) => CreateIf ( value, _ => true );
-
-        private static ChangeListener? CreateIf ( object value, Func < object, bool > predicate )
+        public static ChangeListener? Create ( object? value ) => value switch
         {
-            if ( value is INotifyCollectionChanged collection )
-                return predicate ( collection ) ? new CollectionChangeListener ( collection ) : null;
+            INotifyCollectionChanged collection => new CollectionChangeListener ( collection ),
+            INotifyPropertyChanged   notify     => new PropertyChangeListener   ( notify     ),
+            _                                   => null
+        };
 
-            if ( value is INotifyPropertyChanged notify )
-                return predicate ( notify ) ? new PropertyChangeListener ( notify ) : null;
-
-            return null;
-        }
-
-        private ChangeListener      root;
-        private HashSet < object >? visited;
+        private ChangeListener? parent;
 
         protected ChangeListener ( object instance )
         {
@@ -30,7 +23,6 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
                 throw new ArgumentNullException ( nameof ( instance ) );
 
             Instance = instance;
-            root     = this;
         }
 
         protected object  Instance     { get; }
@@ -39,22 +31,35 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
         public abstract void Subscribe   ( );
         public abstract void Unsubscribe ( );
 
-        private HashSet < object > EnsureVisited ( )
-        {
-            return visited ?? ( visited = new HashSet < object > ( ReferenceEqualityComparer.Default ) );
-        }
-
         protected ChangeListener? CreateListener ( string propertyName, object? value )
         {
-            var listener = CreateIf ( value, root.EnsureVisited ( ).Add );
+            if ( IsListenedByParent ( value ) )
+                return null;
+
+            var listener = Create ( value );
 
             if ( listener != null )
             {
-                listener.root         = root;
+                listener.parent       = this;
                 listener.PropertyName = propertyName;
             }
 
             return listener;
+        }
+
+        private bool IsListenedByParent ( object? value )
+        {
+            var current = (ChangeListener?) this;
+
+            while ( current != null )
+            {
+                if ( ReferenceEquals ( current.Instance, value ) )
+                    return true;
+
+                current = current.parent;
+            }
+
+            return false;
         }
 
         public event PropertyChangingEventHandler? PropertyChanging;
@@ -93,7 +98,7 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
             {
                 Unsubscribe ( );
 
-                root.visited?.Remove ( Instance );
+                parent = null;
 
                 PropertyChanging = null;
                 PropertyChanged  = null;
