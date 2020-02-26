@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
@@ -38,33 +37,40 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
                 return true;
 
             var entityType = entry.EntityType;
-            var properties = new HashSet < string > ( entityType.GetProperties ( ).Select ( property => property.Name ) );
-            var listener   = new PropertyChangeListener ( notify, property => properties.Contains ( property.Name ) );
+            var listener   = new PropertyChangeListener ( notify, property => entityType.FindProperty ( property.Name ) != null );
             var strategy   = entityType.GetChangeTrackingStrategy ( );
 
             if ( strategy != ChangeTrackingStrategy.ChangedNotifications )
             {
                 listener.PropertyChanging += (o, e) =>
                 {
-                    var rootProperty = GetRootProperty ( e.PropertyName );
-                    if ( ! properties.Contains ( rootProperty ) )
-                        return;
+                    var rootProperty  = GetRootProperty ( e.PropertyName );
+                    var isUDTProperty = entityType.FindProperty ( rootProperty ) != null;
 
-                    if ( IsSubProperty ( e.PropertyName ) )
+                    if ( isUDTProperty && IsSubProperty ( e.PropertyName ) )
                         entry.HandleINotifyPropertyChanging ( notify, new PropertyChangingEventArgs ( rootProperty ) );
                 };
             }
 
             listener.PropertyChanged += (o, e) =>
             {
-                var rootProperty = GetRootProperty ( e.PropertyName );
-                if ( ! properties.Contains ( rootProperty ) )
-                    return;
+                var rootProperty  = GetRootProperty ( e.PropertyName );
+                var isUDTProperty = entityType.FindProperty ( rootProperty ) != null;
 
-                if ( IsSubProperty ( e.PropertyName ) )
+                if ( isUDTProperty && IsSubProperty ( e.PropertyName ) )
                     entry.HandleINotifyPropertyChanged ( notify, new PropertyChangedEventArgs ( rootProperty ) );
 
-                entry.ToEntityEntry ( ).Property ( rootProperty ).UpdateModificationState ( );
+                var entityEntry = entry.ToEntityEntry ( );
+
+                if ( ! isUDTProperty )
+                {
+                    var navigation = entityType.FindNavigation ( rootProperty );
+                    if ( navigation != null )
+                        foreach ( var foreignKey in navigation.ForeignKey.Properties )
+                            entityEntry.Property ( foreignKey.Name ).UpdateModificationState ( );
+                }
+                else
+                    entityEntry.Property ( rootProperty ).UpdateModificationState ( );
             };
 
             listeners.Add ( notify, listener );
