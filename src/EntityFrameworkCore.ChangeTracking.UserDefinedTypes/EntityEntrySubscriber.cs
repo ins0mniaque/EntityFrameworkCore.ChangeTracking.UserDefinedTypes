@@ -66,8 +66,12 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
                 {
                     var navigation = entityType.FindNavigation ( rootProperty );
                     if ( navigation != null )
+                    {
+                        Issue19137Workaround.OnNavigationChanged ( entityEntry.Navigation ( navigation.Name ) );
+
                         foreach ( var foreignKey in navigation.ForeignKey.Properties )
                             entityEntry.Property ( foreignKey.Name ).UpdateModificationState ( );
+                    }
                 }
                 else
                     entityEntry.Property ( rootProperty ).UpdateModificationState ( );
