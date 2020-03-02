@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +26,7 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
     /// </summary>
     public class EntityEntrySubscriber : InternalEntityEntrySubscriber
     {
-        private readonly Dictionary < object, ChangeListener > listeners = new Dictionary < object, ChangeListener > ( );
+        private readonly ConcurrentDictionary < object, ChangeListener > listeners = new ConcurrentDictionary < object, ChangeListener > ( );
 
         public override bool SnapshotAndSubscribe ( InternalEntityEntry entry )
         {
@@ -77,7 +77,7 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
                     entityEntry.Property ( rootProperty ).UpdateModificationState ( );
             };
 
-            listeners.Add ( notify, listener );
+            listeners.AddOrUpdate ( notify, listener, (_, oldListener) => { oldListener.Dispose ( ); return listener; } );
 
             listener.Subscribe ( );
 
@@ -88,12 +88,8 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
         {
             var strategy = entry.EntityType.GetChangeTrackingStrategy ( );
 
-            if ( strategy != ChangeTrackingStrategy.Snapshot && listeners.TryGetValue ( entry.Entity, out var listener ) )
-            {
-                listeners.Remove ( listener );
-
+            if ( strategy != ChangeTrackingStrategy.Snapshot && listeners.TryRemove ( entry.Entity, out var listener ) )
                 listener.Dispose ( );
-            }
 
             base.Unsubscribe ( entry );
         }
