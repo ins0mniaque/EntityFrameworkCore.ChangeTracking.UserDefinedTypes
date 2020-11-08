@@ -1,7 +1,9 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 
 namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
 {
@@ -22,9 +24,7 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
             if ( Instance is INotifyPropertyChanged notifyChanged )
                 notifyChanged.PropertyChanged += RaisePropertyChanged;
 
-            if ( Instance is IEnumerable enumerable )
-                foreach ( var item in enumerable )
-                    ResetListener ( item );
+            ResetListeners ( );
         }
 
         public override void Unsubscribe ( )
@@ -76,6 +76,29 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
                 listeners.Add ( item, listener );
 
                 listener.Subscribe ( );
+            }
+        }
+
+        private void ResetListeners ( )
+        {
+            if ( ! ( Instance is IEnumerable enumerable ) )
+                return;
+
+            while ( true )
+            {
+                try
+                {
+                    foreach ( var item in enumerable )
+                        ResetListener ( item );
+
+                    return;
+                }
+                catch ( InvalidOperationException )
+                {
+                    Trace.TraceWarning ( "Collection was changed while enumerating; retrying..." );
+
+                    ClearListeners ( );
+                }
             }
         }
 
