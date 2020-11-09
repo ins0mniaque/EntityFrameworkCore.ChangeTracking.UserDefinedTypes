@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Reflection;
 
 namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
@@ -11,15 +10,13 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
         private readonly Dictionary < string, PropertyInfo   > properties;
         private readonly Dictionary < string, ChangeListener > listeners;
 
-        public PropertyChangeListener ( INotifyPropertyChanged instance ) : this ( instance, _ => true ) { }
-        public PropertyChangeListener ( INotifyPropertyChanged instance, Func < PropertyInfo, bool > filter ) : base ( instance )
+        public PropertyChangeListener ( INotifyPropertyChanged instance )                                     : this ( instance, TypePropertyCache.For ( instance )         ) { }
+        public PropertyChangeListener ( INotifyPropertyChanged instance, Func < PropertyInfo, bool > filter ) : this ( instance, TypePropertyCache.For ( instance, filter ) ) { }
+
+        protected PropertyChangeListener ( INotifyPropertyChanged instance, Dictionary < string, PropertyInfo > properties ) : base ( instance )
         {
-            properties = instance.GetType       ( )
-                                 .GetProperties ( BindingFlags.Public | BindingFlags.Instance )
-                                 .Where         ( property => property.CanRead )
-                                 .Where         ( filter )
-                                 .ToDictionary  ( property => property.Name );
-            listeners  = new Dictionary < string, ChangeListener > ( properties.Count );
+            this.properties = properties;
+            this.listeners  = new Dictionary < string, ChangeListener > ( properties.Count );
         }
 
         public override void Subscribe ( )
