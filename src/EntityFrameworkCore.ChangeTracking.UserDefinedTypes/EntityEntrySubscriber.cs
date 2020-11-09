@@ -26,7 +26,7 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
     /// </summary>
     public class EntityEntrySubscriber : InternalEntityEntrySubscriber
     {
-        private readonly ConcurrentDictionary < object, ChangeListener > listeners = new ConcurrentDictionary < object, ChangeListener > ( );
+        private readonly ConcurrentDictionary < object, ChangeListener > listeners = new ConcurrentDictionary < object, ChangeListener > ( ReferenceEqualityComparer.Default );
 
         public override bool SnapshotAndSubscribe ( InternalEntityEntry entry )
         {
