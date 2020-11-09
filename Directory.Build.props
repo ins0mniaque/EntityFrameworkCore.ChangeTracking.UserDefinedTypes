@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors>Jean-Philippe Leconte</Authors>
     <Copyright>Copyright © Jean-Philippe Leconte 2020</Copyright>
-    <VersionPrefix>1.0.10</VersionPrefix>
+    <VersionPrefix>1.0.11</VersionPrefix>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/ins0mniaque/EntityFrameworkCore.ChangeTracking.UserDefinedTypes</RepositoryUrl>
     <PackageProjectUrl>https://github.com/ins0mniaque/EntityFrameworkCore.ChangeTracking.UserDefinedTypes</PackageProjectUrl>
