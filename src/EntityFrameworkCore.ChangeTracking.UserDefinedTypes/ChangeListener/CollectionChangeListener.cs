@@ -1,6 +1,6 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -9,7 +9,7 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
 {
     public class CollectionChangeListener : ChangeListener
     {
-        private readonly Dictionary < object, ChangeListener > listeners = new Dictionary < object, ChangeListener > ( ReferenceEqualityComparer.Default );
+        private readonly ConcurrentDictionary < object, ChangeListener > listeners = new ConcurrentDictionary < object, ChangeListener > ( ReferenceEqualityComparer.Default );
 
         public CollectionChangeListener ( INotifyCollectionChanged collection ) : base ( collection ) { }
 
@@ -73,7 +73,7 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
                 listener.PropertyChanging += RaisePropertyChanging;
                 listener.PropertyChanged  += RaisePropertyChanged;
 
-                listeners.Add ( item, listener );
+                listeners.AddOrUpdate ( item, listener, (_, oldListener) => { oldListener.Dispose ( ); return listener; } );
 
                 listener.Subscribe ( );
             }
@@ -107,12 +107,8 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
             if ( item == null )
                 return;
 
-            if ( listeners.TryGetValue ( item, out var listener ) )
-            {
+            if ( listeners.TryRemove ( item, out var listener ) )
                 listener.Dispose ( );
-
-                listeners.Remove ( item );
-            }
         }
 
         private void ClearListeners ( )

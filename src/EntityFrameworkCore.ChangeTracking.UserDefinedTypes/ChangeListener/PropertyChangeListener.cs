@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection;
@@ -7,16 +8,17 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
 {
     public class PropertyChangeListener : ChangeListener
     {
-        private readonly Dictionary < string, PropertyInfo   > properties;
-        private readonly Dictionary < string, ChangeListener > listeners;
+        private readonly ConcurrentDictionary < string, ChangeListener > listeners = new ConcurrentDictionary < string, ChangeListener > ( );
+        private readonly Dictionary           < string, PropertyInfo   > properties;
 
-        public PropertyChangeListener ( INotifyPropertyChanged instance )                                     : this ( instance, TypePropertyCache.For ( instance )         ) { }
-        public PropertyChangeListener ( INotifyPropertyChanged instance, Func < PropertyInfo, bool > filter ) : this ( instance, TypePropertyCache.For ( instance, filter ) ) { }
-
-        protected PropertyChangeListener ( INotifyPropertyChanged instance, Dictionary < string, PropertyInfo > properties ) : base ( instance )
+        public PropertyChangeListener ( INotifyPropertyChanged instance ) : base ( instance )
         {
-            this.properties = properties;
-            this.listeners  = new Dictionary < string, ChangeListener > ( properties.Count );
+            properties = TypePropertyCache.For ( instance );
+        }
+
+        public PropertyChangeListener ( INotifyPropertyChanged instance, Func < PropertyInfo, bool > filter ) : base ( instance )
+        {
+            properties = TypePropertyCache.For ( instance, filter );
         }
 
         public override void Subscribe ( )
@@ -47,12 +49,8 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
 
         private void ResetListener ( string propertyName )
         {
-            if ( listeners.TryGetValue ( propertyName, out var listener ) )
-            {
+            if ( listeners.TryRemove ( propertyName, out var listener ) )
                 listener.Dispose ( );
-
-                listeners.Remove ( propertyName );
-            }
 
             if ( ! properties.TryGetValue ( propertyName, out var property ) )
                 return;
@@ -66,7 +64,7 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
                 listener.PropertyChanging += RaisePropertyChanging;
                 listener.PropertyChanged  += RaisePropertyChanged;
 
-                listeners.Add ( propertyName, listener );
+                listeners.AddOrUpdate ( propertyName, listener, (_, oldListener) => { oldListener.Dispose ( ); return listener; } );
 
                 listener.Subscribe ( );
             }
