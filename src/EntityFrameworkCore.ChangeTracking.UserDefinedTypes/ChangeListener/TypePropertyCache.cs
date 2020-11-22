@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 
@@ -7,16 +8,10 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
 {
     public static class TypePropertyCache
     {
-        private static readonly Dictionary < Type, Dictionary < string, PropertyInfo > > cache = new Dictionary < Type, Dictionary < string, PropertyInfo > > ( );
+        private static readonly ConcurrentDictionary < Type, Dictionary < string, PropertyInfo > > cache = new ConcurrentDictionary < Type, Dictionary < string, PropertyInfo > > ( );
 
         public static Dictionary < string, PropertyInfo > For ( object instance ) => For ( instance.GetType ( ) );
-        public static Dictionary < string, PropertyInfo > For ( Type   type     )
-        {
-            if ( ! cache.TryGetValue ( type, out var properties ) )
-                cache [ type ] = properties = GetProperties ( type );
-
-            return properties;
-        }
+        public static Dictionary < string, PropertyInfo > For ( Type   type     ) => cache.GetOrAdd ( type, GetProperties );
 
         public static Dictionary < string, PropertyInfo > For ( object instance, Func < PropertyInfo, bool > filter ) => For ( instance.GetType ( ), filter );
         public static Dictionary < string, PropertyInfo > For ( Type   type,     Func < PropertyInfo, bool > filter )
