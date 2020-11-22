@@ -25,9 +25,20 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
 
         private static Dictionary < string, PropertyInfo > GetProperties ( Type type )
         {
-            return type.GetProperties ( BindingFlags.Public | BindingFlags.Instance )
-                       .Where         ( property => property.CanRead )
-                       .ToDictionary  ( property => property.Name );
+            var properties = type.GetProperties ( BindingFlags.Public | BindingFlags.Instance );
+            var dictionary = new Dictionary < string, PropertyInfo > ( properties.Length );
+
+            foreach ( var property in properties )
+            {
+                if ( ! property.CanRead )
+                    continue;
+
+                if ( ! dictionary.TryAdd ( property.Name, property ) )
+                    if ( dictionary [ property.Name ].DeclaringType.IsAssignableFrom ( property.DeclaringType ) )
+                        dictionary [ property.Name ] = property;
+            }
+
+            return dictionary;
         }
     }
 }
