@@ -6,14 +6,21 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
 {
     public abstract class ChangeListener : INotifyPropertyChanging, INotifyPropertyChanged, IDisposable
     {
-        public static ChangeListener? Create ( object? value ) => value switch
+        public static ChangeListener? Create ( object? instance ) => instance switch
         {
             INotifyCollectionChanged collection => new CollectionChangeListener ( collection ),
             INotifyPropertyChanged   notify     => new PropertyChangeListener   ( notify     ),
             _                                   => null
         };
 
-        private ChangeListener? parent;
+        public static ChangeListener? Create ( object? instance, Func < ChangeListener, bool > filter ) => instance switch
+        {
+            INotifyCollectionChanged collection => new CollectionChangeListener ( collection ) { filter = filter },
+            INotifyPropertyChanged   notify     => new PropertyChangeListener   ( notify     ) { filter = filter },
+            _                                   => null
+        };
+
+        private Func < ChangeListener, bool >? filter;
 
         protected ChangeListener ( object instance )
         {
@@ -23,38 +30,45 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
             Instance = instance;
         }
 
-        protected object  Instance     { get; }
-        protected string? PropertyName { get; private set; }
+        public ChangeListener? Parent       { get; private set; }
+        public int             Depth        { get; private set; }
+        public object          Instance     { get; }
+        public string?         PropertyName { get; private set; }
 
         public abstract void Subscribe   ( );
         public abstract void Unsubscribe ( );
 
-        protected ChangeListener? CreateListener ( string propertyName, object? value )
+        protected ChangeListener? CreateListener ( string propertyName, object? instance )
         {
-            if ( IsListenedByParent ( value ) )
+            if ( IsListenedByParent ( instance ) )
                 return null;
 
-            var listener = Create ( value );
+            var listener = filter != null ? Create ( instance, filter ) :
+                                            Create ( instance );
 
             if ( listener != null )
             {
-                listener.parent       = this;
+                listener.Parent       = this;
+                listener.Depth        = Depth + 1;
                 listener.PropertyName = propertyName;
+
+                if ( filter != null && ! filter ( listener ) )
+                    listener = null;
             }
 
             return listener;
         }
 
-        private bool IsListenedByParent ( object? value )
+        private bool IsListenedByParent ( object? instance )
         {
             var current = (ChangeListener?) this;
 
             while ( current != null )
             {
-                if ( ReferenceEquals ( current.Instance, value ) )
+                if ( ReferenceEquals ( current.Instance, instance ) )
                     return true;
 
-                current = current.parent;
+                current = current.Parent;
             }
 
             return false;
@@ -65,12 +79,12 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
 
         protected virtual void RaisePropertyChanging ( string propertyPath )
         {
-            PropertyChanging?.Invoke ( Instance, new PropertyChangingEventArgs ( propertyPath ) );
+            PropertyChanging?.Invoke ( this, new PropertyChangingEventArgs ( propertyPath ) );
         }
 
         protected virtual void RaisePropertyChanged ( string propertyPath )
         {
-            PropertyChanged?.Invoke ( Instance, new PropertyChangedEventArgs ( propertyPath ) );
+            PropertyChanged?.Invoke ( this, new PropertyChangedEventArgs ( propertyPath ) );
         }
 
         protected void RaisePropertyChanging ( object sender, PropertyChangingEventArgs e ) => RaisePropertyChanging ( BuildPropertyPath ( PropertyName, e.PropertyName ) );
@@ -96,7 +110,7 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
             {
                 Unsubscribe ( );
 
-                parent = null;
+                Parent = null;
 
                 PropertyChanging = null;
                 PropertyChanged  = null;
