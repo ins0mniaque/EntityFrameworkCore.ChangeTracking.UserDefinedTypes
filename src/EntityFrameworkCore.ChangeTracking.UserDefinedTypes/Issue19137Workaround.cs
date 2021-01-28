@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
 {
@@ -12,9 +13,9 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
     {
         public static void OnNavigationChanged ( NavigationEntry navigation )
         {
-            if ( navigation.IsModified && navigation.CurrentValue == null )
+            if ( navigation.IsModified && navigation.CurrentValue == null && navigation.Metadata is INavigation metadata )
             {
-                foreach ( var property in navigation.Metadata.ForeignKey.Properties )
+                foreach ( var property in metadata.ForeignKey.Properties )
                 {
                     var foreignKey = navigation.EntityEntry.Property ( property.Name );
                     if ( foreignKey.Metadata.IsNullable && foreignKey.CurrentValue != null )
