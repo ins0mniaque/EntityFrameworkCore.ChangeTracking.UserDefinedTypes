@@ -93,7 +93,9 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
 
                     return;
                 }
-                catch ( InvalidOperationException )
+                catch ( Exception exception )
+                when  ( exception is InvalidOperationException ||
+                        exception is IndexOutOfRangeException )
                 {
                     Trace.TraceWarning ( "Collection was changed while enumerating; retrying..." );
 
