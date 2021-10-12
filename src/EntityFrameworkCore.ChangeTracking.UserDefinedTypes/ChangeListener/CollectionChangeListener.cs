@@ -11,7 +11,7 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
     {
         private readonly ConcurrentDictionary < object, ChangeListener > listeners = new ConcurrentDictionary < object, ChangeListener > ( ReferenceEqualityComparer.Default );
 
-        public CollectionChangeListener ( INotifyCollectionChanged collection ) : base ( collection ) { }
+        public CollectionChangeListener ( object collection ) : base ( collection ) { }
 
         public override void Subscribe ( )
         {

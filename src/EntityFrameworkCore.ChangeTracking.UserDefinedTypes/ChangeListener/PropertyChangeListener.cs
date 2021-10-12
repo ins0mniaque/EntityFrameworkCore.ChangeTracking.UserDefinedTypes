@@ -11,12 +11,12 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
         private readonly ConcurrentDictionary < string, ChangeListener > listeners = new ConcurrentDictionary < string, ChangeListener > ( );
         private readonly Dictionary           < string, PropertyInfo   > properties;
 
-        public PropertyChangeListener ( INotifyPropertyChanged instance ) : base ( instance )
+        public PropertyChangeListener ( object instance ) : base ( instance )
         {
             properties = TypePropertyCache.For ( instance );
         }
 
-        public PropertyChangeListener ( INotifyPropertyChanged instance, Func < PropertyInfo, bool > filter ) : base ( instance )
+        public PropertyChangeListener ( object instance, Func < PropertyInfo, bool > filter ) : base ( instance )
         {
             properties = TypePropertyCache.For ( instance, filter );
         }

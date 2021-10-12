@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 
@@ -8,16 +9,18 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
     {
         public static ChangeListener? Create ( object? instance ) => instance switch
         {
-            INotifyCollectionChanged collection => new CollectionChangeListener ( collection ),
-            INotifyPropertyChanged   notify     => new PropertyChangeListener   ( notify     ),
-            _                                   => null
+            INotifyCollectionChanged               collection => new CollectionChangeListener ( collection ),
+            IEnumerable < INotifyPropertyChanged > enumerable => new CollectionChangeListener ( enumerable ),
+            INotifyPropertyChanged                 notify     => new PropertyChangeListener   ( notify     ),
+            _                                                 => null
         };
 
         public static ChangeListener? Create ( object? instance, Func < ChangeListener, bool > filter ) => instance switch
         {
-            INotifyCollectionChanged collection => new CollectionChangeListener ( collection ) { filter = filter },
-            INotifyPropertyChanged   notify     => new PropertyChangeListener   ( notify     ) { filter = filter },
-            _                                   => null
+            INotifyCollectionChanged               collection => new CollectionChangeListener ( collection ) { filter = filter },
+            IEnumerable < INotifyPropertyChanged > enumerable => new CollectionChangeListener ( enumerable ) { filter = filter },
+            INotifyPropertyChanged                 notify     => new PropertyChangeListener   ( notify     ) { filter = filter },
+            _                                                 => null
         };
 
         private Func < ChangeListener, bool >? filter;
