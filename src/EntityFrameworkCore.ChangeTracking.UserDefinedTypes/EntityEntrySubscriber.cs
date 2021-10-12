@@ -70,11 +70,11 @@ namespace EntityFrameworkCore.ChangeTracking.UserDefinedTypes
                         Issue19137Workaround.OnNavigationChanged ( entityEntry.Navigation ( navigation.Name ) );
 
                         foreach ( var foreignKey in navigation.ForeignKey.Properties )
-                            entityEntry.Property ( foreignKey.Name ).UpdateModificationState ( );
+                            entityEntry.Property ( foreignKey.Name ).TryResetModificationState ( );
                     }
                 }
                 else
-                    entityEntry.Property ( rootProperty ).UpdateModificationState ( );
+                    entityEntry.Property ( rootProperty ).TryResetModificationState ( );
             };
 
             listeners.AddOrUpdate ( notify, listener, (_, oldListener) => { oldListener.Dispose ( ); return listener; } );
